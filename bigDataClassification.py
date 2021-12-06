@@ -3,7 +3,9 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 import json
 from pyspark.sql import SQLContext
+from sklearn.metrics import accuracy_score
 import numpy as np
+from pyspark.ml.feature import MinMaxScaler
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.functions import udf
@@ -93,8 +95,27 @@ def processBatch(input_rdd,process_id_cnt):
             df = final_rdd.toDF()
             print(df.head())
 
-            print(file_currently_streaming)           	            	
+            #extracting the target column
+            Y=np.array(df.select('_42').collect())
+            #dropping the target column
+            df=df.drop('_42')
 
+            #dropping unnecessary columns
+            df=df.drop('_4')
+            df=df.drop('_3')
+            df=df.drop('_20')
+            print(df.head())
+
+            X=np.array(df.collect())
+
+            print(file_currently_streaming)
+            
+            labels = [] 
+            if(file_currently_streaming == 'train'):
+            	print(X.shape,Y.shape)           	
+            else:
+            	print("its time to predict")           	
+                
             print("batch completed\n\n")
 
 input_batches.foreachRDD(lambda rdd : processBatch(rdd,process_id_cnt))
