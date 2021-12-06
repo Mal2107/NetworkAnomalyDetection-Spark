@@ -18,6 +18,15 @@ import sys
 os.environ['PYSPARK_PYTHON'] = sys.executable
 os.environ['PYSPARK_DRIVER_PYTHON'] = sys.executable
 
+from sklearn.naive_bayes import BernoulliNB
+classifier2 = BernoulliNB()
+
+from sklearn.naive_bayes import MultinomialNB
+classifier3 = MultinomialNB()
+
+from sklearn.linear_model import PassiveAggressiveClassifier
+classifier5=PassiveAggressiveClassifier(random_state = 5)
+
 sc = SparkContext("local[2]","test")
 
 process_id_cnt = 1
@@ -112,10 +121,29 @@ def processBatch(input_rdd,process_id_cnt):
             
             labels = [] 
             if(file_currently_streaming == 'train'):
-            	print(X.shape,Y.shape)           	
+            	print(X.shape,Y.shape)
+                #incremental training of the classifiers usin partial_fit 
+            	classifier2.partial_fit(X,Y.ravel(),classes=['DoS','Probe','R2L','U2R','Normal'])
+            	classifier3.partial_fit(X,Y.ravel(),classes=['DoS','Probe','R2L','U2R','Normal'])
+            	classifier5.partial_fit(X,Y.ravel(),classes=['DoS','Probe','R2L','U2R','Normal'])
+            	
+            	
             else:
-            	print("its time to predict")           	
-                
+            	print("its time to predict")
+
+            	Y_test_preds = []
+
+                #predicting using the models trained before
+            	Y_test_preds=classifier2.predict(X)
+            	print("Test Accuracy-BernoulliNB      : {}".format(accuracy_score(Y, Y_test_preds)))
+
+            	Y_test_preds=classifier3.predict(X.astype(np.float64))
+            	print("Test Accuracy-MultinomialNB      : {}".format(accuracy_score(Y, Y_test_preds)))
+
+            	Y_test_preds=classifier5.predict(X.astype(np.float64))
+            	print("Test Accuracy-PassiveAggressiveClassifier      : {}".format(accuracy_score(Y, Y_test_preds)))            	
+            	            	
+
             print("batch completed\n\n")
 
 input_batches.foreachRDD(lambda rdd : processBatch(rdd,process_id_cnt))
